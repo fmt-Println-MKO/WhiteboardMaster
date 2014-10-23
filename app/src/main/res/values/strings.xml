@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">WhiteboardMaster</string>
+
+    <string name="enter_title">title here</string>
+    <string name="enter_description">description here</string>
+    <string name="save_whiteboard">save</string>
+    <string name="delete_whiteboard">delete</string>
+    <string name="share_whiteboard">share</string>
+    <string name="share_error">there was an error while sharing the whiteboard, check your connection and try again</string>
+    <string name="uploading">uploading whiteboard</string>
+    <string name="add_wb">add new whiteboard</string>
+    <string name="no_cam">no camera found</string>
+
+    <string name="wb_downloading">Whiteboard downloading</string>
+
+</resources>
