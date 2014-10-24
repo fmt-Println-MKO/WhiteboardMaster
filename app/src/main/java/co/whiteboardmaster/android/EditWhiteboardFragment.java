@@ -33,7 +33,8 @@ public class EditWhiteboardFragment extends Fragment {
     private EditText title;
     private EditText description;
     private TouchImageView mImageView;
-    private String path;
+    private String imageFilename;
+    private String thumbFileName;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
@@ -43,13 +44,14 @@ public class EditWhiteboardFragment extends Fragment {
         title = (EditText) v.findViewById(R.id.wm_edit_whiteboard_title);
         description = (EditText) v.findViewById(R.id.wm_edit_whiteboard_description);
 
-        path = (String) getArguments().getSerializable(CameraFragment.EXTRA_PHOTO_FILENAME);
+        imageFilename = (String) getArguments().getSerializable(CameraFragment.EXTRA_PHOTO_FILENAME);
+        thumbFileName = (String) getArguments().getSerializable(CameraFragment.EXTRA_THUMB_PHOTO_FILENAME);
 
 
         final ProgressBar progress = (ProgressBar) v.findViewById(R.id.wm_edit_whiteboard_image_progress);
 
         try {
-            FileInputStream is = new FileInputStream(path);
+            FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(),imageFilename));
             TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, null, new TileBitmapDrawable.OnInitializeListener() {
 
                 @Override
@@ -77,7 +79,9 @@ public class EditWhiteboardFragment extends Fragment {
                 Whiteboard.WhiteBoardBuilder wb = new Whiteboard.WhiteBoardBuilder()
                         .setDescription(description.getText().toString())
                         .setTitle(title.getText().toString())
-                        .setPath(path).setCreated(System.currentTimeMillis())
+                        .setImageFileName(imageFilename)
+                        .setThumbFileName(thumbFileName)
+                        .setCreated(System.currentTimeMillis())
                         .setUpdated(System.currentTimeMillis());
                 Whiteboard whiteboard = wb.build();
                 long count = mHelper.insertWhiteboard(whiteboard);
@@ -94,13 +98,14 @@ public class EditWhiteboardFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-//        BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), path);
+//        BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), imageFilename);
 //        mImageView.setImageDrawable(image);
     }
 
-    public static EditWhiteboardFragment newInstance(String path) {
+    public static EditWhiteboardFragment newInstance(String imageFilename, String thumbFileName) {
         Bundle args = new Bundle();
-        args.putSerializable(CameraFragment.EXTRA_PHOTO_FILENAME, path);
+        args.putSerializable(CameraFragment.EXTRA_PHOTO_FILENAME, imageFilename);
+        args.putSerializable(CameraFragment.EXTRA_THUMB_PHOTO_FILENAME, thumbFileName);
 
         EditWhiteboardFragment fragment = new EditWhiteboardFragment();
         fragment.setArguments(args);

@@ -24,7 +24,8 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_WHITEBOARD_CREATED = "created";
     private static final String COLUMN_WHITEBOARD_UPDATED = "updated";
     private static final String COLUMN_WHITEBOARD_TITLE = "title";
-    private static final String COLUMN_WHITEBOARD_PATH = "path";
+    private static final String COLUMN_WHITEBOARD_IMAGE_FILENAME = "imagefilename";
+    private static final String COLUMN_WHITEBOARD_THUMB_FILENAME = "thumbfilename";
     private static final String COLUMN_WHITEBOARD_DESCRIPTION = "description";
     private static final String COLUMN_WHITEBOARD_GUID = "guid";
 
@@ -36,8 +37,9 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("create table " + TABLE_WM + " ( " +
                 COLUMN_WHITEBOARD_ID + " integer primary key autoincrement, " +
-                COLUMN_WHITEBOARD_TITLE + " text, " +
-                COLUMN_WHITEBOARD_PATH + " text, " +
+                COLUMN_WHITEBOARD_TITLE + " varchar(250), " +
+                COLUMN_WHITEBOARD_IMAGE_FILENAME + " varchar(64), " +
+                COLUMN_WHITEBOARD_THUMB_FILENAME + " varchar(64), " +
                 COLUMN_WHITEBOARD_DESCRIPTION + " text," +
                 COLUMN_WHITEBOARD_CREATED + " integer, " +
                 COLUMN_WHITEBOARD_UPDATED + " integer, " +
@@ -84,7 +86,8 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
         cv.put(COLUMN_WHITEBOARD_UPDATED, System.currentTimeMillis());
         cv.put(COLUMN_WHITEBOARD_TITLE, whiteboard.getTitle());
         cv.put(COLUMN_WHITEBOARD_DESCRIPTION, whiteboard.getDescription());
-        cv.put(COLUMN_WHITEBOARD_PATH, whiteboard.getPath());
+        cv.put(COLUMN_WHITEBOARD_IMAGE_FILENAME, whiteboard.getImageFileName());
+        cv.put(COLUMN_WHITEBOARD_THUMB_FILENAME, whiteboard.getThumbFileName());
         cv.put(COLUMN_WHITEBOARD_GUID, whiteboard.getGuid());
         return cv;
     }
@@ -120,7 +123,8 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
             wb.setId(getInt(getColumnIndex(COLUMN_WHITEBOARD_ID)));
             wb.setTitle(getString(getColumnIndex(COLUMN_WHITEBOARD_TITLE)));
             wb.setDescription(getString(getColumnIndex(COLUMN_WHITEBOARD_DESCRIPTION)));
-            wb.setPath(getString(getColumnIndex(COLUMN_WHITEBOARD_PATH)));
+            wb.setImageFileName(getString(getColumnIndex(COLUMN_WHITEBOARD_IMAGE_FILENAME)));
+            wb.setThumbFileName(getString(getColumnIndex(COLUMN_WHITEBOARD_THUMB_FILENAME)));
             wb.setCreated(getLong(getColumnIndex(COLUMN_WHITEBOARD_CREATED)));
             wb.setUpdated(getLong(getColumnIndex(COLUMN_WHITEBOARD_UPDATED)));
             wb.setGuid(getString(getColumnIndex(COLUMN_WHITEBOARD_GUID)));

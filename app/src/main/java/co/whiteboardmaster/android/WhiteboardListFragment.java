@@ -3,15 +3,14 @@ package co.whiteboardmaster.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
-import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -41,17 +40,17 @@ public class WhiteboardListFragment extends Fragment {
 
     private WhiteboardDatabaseHelper.WhiteboardCursor mCursor;
     private WhiteboardDatabaseHelper mHelper;
-    private GridView gridView;
 
     private ImageLoaderThread<ThumbImageMessage> mImageLoaderThread;
+
+    private WhiteboardCursorAdapter adapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_whiteboard_list, parent, false);
-        gridView = (GridView) v.findViewById(R.id.wm_whiteboard_grid_list);
-        setHasOptionsMenu(true);
 
-        mHelper = new WhiteboardDatabaseHelper(getActivity());
+        GridView gridView = (GridView) v.findViewById(R.id.wm_whiteboard_grid_list);
+        Log.i(TAG, "---- Whiteboardlist Fragment gridView created ");
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -63,23 +62,60 @@ public class WhiteboardListFragment extends Fragment {
             }
         });
 
-        mImageLoaderThread = new ImageLoaderThread<ThumbImageMessage>(new Handler());
-        mImageLoaderThread.setListener(new ImageLoaderThread.Listener<ThumbImageMessage>() {
-            @Override
-            public void onImageLoaded(ThumbImageMessage imageMessage, BitmapDrawable image) {
-                imageMessage.mProgressContainer.setVisibility(View.INVISIBLE);
-                imageMessage.imageView.setImageDrawable(image);
-            }
-        });
-        mImageLoaderThread.start();
-        mImageLoaderThread.getLooper();
-        Log.i(TAG,"image loader thread startet");
+        Log.i(TAG, "---- Whiteboardlist Fragment onCreateView ");
 
-        mCursor = mHelper.queryWhiteboards();
+        if (mImageLoaderThread == null) {
+            mImageLoaderThread = new ImageLoaderThread<ThumbImageMessage>(new Handler());
+            mImageLoaderThread.setListener(new ImageLoaderThread.Listener<ThumbImageMessage>() {
+                @Override
+                public void onImageLoaded(ThumbImageMessage imageMessage, BitmapDrawable image) {
+                    imageMessage.mProgressContainer.setVisibility(View.INVISIBLE);
+                    imageMessage.imageView.setImageDrawable(image);
+                }
+            });
+            mImageLoaderThread.start();
+            mImageLoaderThread.getLooper();
+            Log.i(TAG, "---- image loader thread startet");
 
-        final WhiteboardCursorAdapter adapter = new WhiteboardCursorAdapter(getActivity(), mCursor,mImageLoaderThread);
+        }
+
+        if (mHelper == null) {
+            mHelper = new WhiteboardDatabaseHelper(getActivity());
+        }
+
+        if (mCursor == null) {
+            mCursor = mHelper.queryWhiteboards();
+        }
+
+        if (adapter == null) {
+            adapter = new WhiteboardCursorAdapter(getActivity(), mCursor, mImageLoaderThread);
+
+        }
+
+
         gridView.setAdapter(adapter);
+
         return v;
+    }
+
+    public static WhiteboardListFragment findOrCreateRetainFragment(FragmentManager fm) {
+        WhiteboardListFragment fragment = (WhiteboardListFragment) fm.findFragmentByTag(TAG);
+        if (fragment == null) {
+            fragment = new WhiteboardListFragment();
+            fm.beginTransaction().add(R.id.fragmentContainer, fragment, TAG).commit();
+            Log.i(TAG, "---- findOrCreateRetainFragment created new fragment");
+        }
+
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+        setHasOptionsMenu(true);
+        Log.i(TAG, "----- Whiteboard List Fragment created ");
+
     }
 
     @Override
@@ -98,7 +134,6 @@ public class WhiteboardListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-
 
 
     }

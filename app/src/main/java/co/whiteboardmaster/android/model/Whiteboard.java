@@ -9,17 +9,19 @@ public class Whiteboard implements Serializable{
 
     private int id;
     private String title;
-    private String path;
+    private String imageFileName;
+    private String thumbFileName;
     private String description;
     private long created;
     private long updated;
     private String guid;
 
 
-    public Whiteboard(int id, String title, String path, String description, long created, long updated, String guid) {
+    public Whiteboard(int id, String title, String imageFileName, String thumbFileName, String description, long created, long updated, String guid) {
         this.id = id;
         this.title = title;
-        this.path = path;
+        this.imageFileName = imageFileName;
+        this.thumbFileName = thumbFileName;
         this.description = description;
         this.created = created;
         this.updated = updated;
@@ -34,8 +36,12 @@ public class Whiteboard implements Serializable{
         return title;
     }
 
-    public String getPath() {
-        return path;
+    public String getImageFileName() {
+        return imageFileName;
+    }
+
+    public String getThumbFileName() {
+        return thumbFileName;
     }
 
     public String getDescription() {
@@ -59,7 +65,7 @@ public class Whiteboard implements Serializable{
         return "Whiteboard{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
-                ", path='" + path + '\'' +
+                ", imageFileName='" + imageFileName + '\'' +
                 ", description='" + description + '\'' +
                 ", created=" + created +
                 ", updated=" + updated +
@@ -71,7 +77,8 @@ public class Whiteboard implements Serializable{
 
         private int id;
         private String title;
-        private String path;
+        private String imageFileName;
+        private String thumbFileName;
         private String description;
         private long created;
         private long updated;
@@ -83,7 +90,8 @@ public class Whiteboard implements Serializable{
         public WhiteBoardBuilder(Whiteboard wb) {
             this.id = wb.getId();
             this.title = wb.getTitle();
-            this.path = wb.getPath();
+            this.imageFileName = wb.getImageFileName();
+            this.thumbFileName = wb.getThumbFileName();
             this.description = wb.getDescription();
             this.created = wb.getCreated();
             this.updated = wb.getUpdated();
@@ -100,8 +108,13 @@ public class Whiteboard implements Serializable{
             return this;
         }
 
-        public WhiteBoardBuilder setPath(String path) {
-            this.path = path;
+        public WhiteBoardBuilder setImageFileName(String imageFileName) {
+            this.imageFileName = imageFileName;
+            return this;
+        }
+
+        public WhiteBoardBuilder setThumbFileName(String thumbFileName) {
+            this.thumbFileName = thumbFileName;
             return this;
         }
 
@@ -126,7 +139,7 @@ public class Whiteboard implements Serializable{
         }
 
         public Whiteboard build() {
-            return new Whiteboard(id, title, path, description, created, updated, guid);
+            return new Whiteboard(id, title, imageFileName,thumbFileName, description, created, updated, guid);
         }
     }
 }
