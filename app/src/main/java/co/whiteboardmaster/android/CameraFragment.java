@@ -1,11 +1,7 @@
 package co.whiteboardmaster.android;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
@@ -22,14 +18,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 
-import com.jni.bitmap_operations.JniBitmapHolder;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -63,7 +52,7 @@ public class CameraFragment extends Fragment {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
 
-            Map<PictureUtils.PictureType,String> pictures = PictureUtils.storeBitmap(data, rotation, getActivity());
+            Map<PictureUtils.PictureType, String> pictures = PictureUtils.storeBitmap(data, rotation, getActivity());
 
             if (pictures != null) {
 
@@ -127,7 +116,7 @@ public class CameraFragment extends Fragment {
                 Size s = getBestSupportedSize(parameters.getSupportedPictureSizes());
                 parameters.setPictureSize(s.width, s.height);
 
-                Log.d(TAG,"-----taking image: " + s.width + " * " + s.height);
+                Log.d(TAG, "-----taking image: " + s.width + " * " + s.height);
                 rotation = setCameraDisplayOrientation(getActivity(), mCamera);
 
                 mCamera.setParameters(setColorEffect(parameters));

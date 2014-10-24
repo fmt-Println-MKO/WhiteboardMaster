@@ -18,6 +18,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.diegocarloslima.byakugallery.lib.TileBitmapDrawable;
+import com.diegocarloslima.byakugallery.lib.TouchImageView;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -45,11 +48,10 @@ import java.util.Date;
 import co.whiteboardmaster.android.model.Whiteboard;
 import co.whiteboardmaster.android.utils.PictureUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
+
 //import co.whiteboardmaster.android.view.TouchImageView;
 //import it.sephiroth.android.library.imagezoom.ImageViewTouch;
 //import it.sephiroth.android.library.imagezoom.ImageViewTouchBase;
-import com.diegocarloslima.byakugallery.lib.TileBitmapDrawable;
-import com.diegocarloslima.byakugallery.lib.TouchImageView;
 
 //import org.apache.http.entity.mime.MultipartEntityBuilder;
 
@@ -66,16 +68,7 @@ public class WhiteboardDetailsFragment extends Fragment {
 
     private static final int REQUEST_NEW_WHITEBOARD = 1;
 
-//    private TextView title;
-//    private TextView description;
-
     private Whiteboard wb;
-
-//    private ImageViewTouch mImageView;
-//    private TouchImageView mImageView;
-
-//    private WhiteboardDatabaseHelper.WhiteboardCursor mCursor;
-
     private View mProgressContainer;
     private ProgressBar mProgressBar;
 
@@ -85,11 +78,7 @@ public class WhiteboardDetailsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_whiteboard_detail, parent, false);
-
-//        mImageView = (ImageViewTouch) v.findViewById(R.id.wm_whiteboard_detail_image);
         final TouchImageView mImageView = (TouchImageView) v.findViewById(R.id.wm_whiteboard_detail_image);
-
-//        final TouchImageView image = (TouchImageView) findViewById(R.id.touch_image_view_sample_image);
 
         final TextView title = (TextView) v.findViewById(R.id.wm_whiteboard_detail_title);
         final TextView description = (TextView) v.findViewById(R.id.wm_whiteboard_detail_description);
@@ -102,16 +91,15 @@ public class WhiteboardDetailsFragment extends Fragment {
 
         wb = (Whiteboard) getArguments().getSerializable(WhiteboardListFragment.WHITEBOARD);
 
-        Log.d(TAG,"---- WhiteboardDetailsFragment onCreateView: " + wb);
+        Log.d(TAG, "---- WhiteboardDetailsFragment onCreateView: " + wb);
 
         title.setText(wb.getTitle());
         description.setText(wb.getDescription());
 
-
         final ProgressBar progress = (ProgressBar) v.findViewById(R.id.wm_whiteboard_detail_image_progress);
 
         try {
-            FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(),wb.getImageFileName()));
+            FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(), wb.getImageFileName()));
             TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, null, new TileBitmapDrawable.OnInitializeListener() {
 
                 @Override
@@ -149,50 +137,26 @@ public class WhiteboardDetailsFragment extends Fragment {
         super.onCreate(savedInstance);
         setHasOptionsMenu(true);
         mHandler = new Handler(getActivity().getMainLooper());
-        Log.d(TAG,"---- WhiteboardDetailsFragment onCreate: " + wb);
+        Log.d(TAG, "---- WhiteboardDetailsFragment onCreate: " + wb);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-
-        Log.d(TAG,"---- WhiteboardDetailsFragment onResume: " + wb);
-
-//        mImageView.setImageDrawable(null);
-
-//        wb = (Whiteboard) getArguments().getSerializable(WhiteboardListFragment.WHITEBOARD);
-//
-//        title.setText(wb.getTitle());
-//        description.setText(wb.getDescription());
-//
-////        BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), wb.getImageFileName());
-//////        mImageView.setImageDrawable(image, null, -1, 8f);
-////        mImageView.setImageDrawable(image);
-//
-//        final InputStream is;
-//        try {
-//            is = new FileInputStream(wb.getImageFileName());
-//            final Drawable placeHolder = getResources().getDrawable(R.drawable.android_placeholder);
-//            TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, placeHolder, null);
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
-
+        Log.d(TAG, "---- WhiteboardDetailsFragment onResume: " + wb);
     }
 
 
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG,"---- WhiteboardDetailsFragment onPause: " + wb);
-//        System.out.println("-------- pause");
-        //PictureUtils.cleanImageView(mImageView);
+        Log.d(TAG, "---- WhiteboardDetailsFragment onPause: " + wb);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.d(TAG,"---- WhiteboardDetailsFragment onDestroy: " + wb);
+        Log.d(TAG, "---- WhiteboardDetailsFragment onDestroy: " + wb);
     }
 
     @Override
@@ -239,7 +203,7 @@ public class WhiteboardDetailsFragment extends Fragment {
                         mProgressContainer.setVisibility(View.VISIBLE);
                     }
                 });
-                postFile(PictureUtils.getPathToFile(getActivity(),wb.getImageFileName()), wb.getTitle(), wb.getDescription(), wb.getCreated());
+                postFile(PictureUtils.getPathToFile(getActivity(), wb.getImageFileName()), wb.getTitle(), wb.getDescription(), wb.getCreated());
             } catch (Exception e) {
                 Log.e(TAG, "error during share: " + e.getMessage(), e);
 
