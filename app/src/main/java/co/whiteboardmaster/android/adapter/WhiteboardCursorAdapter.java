@@ -13,6 +13,7 @@ import co.whiteboardmaster.android.R;
 import co.whiteboardmaster.android.model.ThumbImageMessage;
 import co.whiteboardmaster.android.model.Whiteboard;
 import co.whiteboardmaster.android.utils.ImageLoaderThread;
+import co.whiteboardmaster.android.utils.PictureUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
 
 /**
@@ -25,7 +26,6 @@ public class WhiteboardCursorAdapter extends CursorAdapter {
     private WhiteboardDatabaseHelper.WhiteboardCursor mCursor;
 
     private ImageLoaderThread mImageLoaderThread;
-
 
     public WhiteboardCursorAdapter(Context context, WhiteboardDatabaseHelper.WhiteboardCursor cursor, ImageLoaderThread imageLoaderThread) {
         super(context, cursor, 0);
@@ -44,7 +44,7 @@ public class WhiteboardCursorAdapter extends CursorAdapter {
         ThumbImageMessage imageMessage = new ThumbImageMessage();
         imageMessage.destHeight = 100;
         imageMessage.destWidth = 100;
-        imageMessage.resources = view.getResources();
+        imageMessage.context = context;
         imageMessage.imageView = mImageView;
         imageMessage.mProgressContainer = progressView;
 
@@ -58,7 +58,7 @@ public class WhiteboardCursorAdapter extends CursorAdapter {
 //        Log.d(TAG," -------------  courser pos:" + mCursor.getPosition());
 //        Log.d(TAG, " -------------  whiteboard: " + wb.getId());
         ThumbImageMessage imageMessage = (ThumbImageMessage) view.getTag();
-        imageMessage.path = wb.getPath();
+        imageMessage.path = PictureUtils.getPathToFile(context, wb.getThumbFileName());
         imageMessage.imageId = wb.getId();
         imageMessage.mProgressContainer.setVisibility(View.VISIBLE);
         imageMessage.imageView.setImageDrawable(null);

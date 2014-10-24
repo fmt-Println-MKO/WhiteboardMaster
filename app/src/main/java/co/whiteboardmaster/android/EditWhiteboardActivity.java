@@ -8,7 +8,8 @@ import android.support.v4.app.Fragment;
 public class EditWhiteboardActivity extends SingleFragmentActivity {
     @Override
     protected Fragment createFragment() {
-        String path = (String)getIntent().getSerializableExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
-        return EditWhiteboardFragment.newInstance(path);
+        String imageFileName = (String)getIntent().getSerializableExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
+        String thumbFileName = (String)getIntent().getSerializableExtra(CameraFragment.EXTRA_THUMB_PHOTO_FILENAME);
+        return EditWhiteboardFragment.newInstance(imageFileName,thumbFileName);
     }
 }

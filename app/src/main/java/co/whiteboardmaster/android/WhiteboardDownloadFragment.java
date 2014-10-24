@@ -4,11 +4,8 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
 import android.os.PowerManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -16,7 +13,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,7 +36,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import co.whiteboardmaster.android.model.Whiteboard;
-import co.whiteboardmaster.android.utils.PictureUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
 
 /**
@@ -294,7 +289,8 @@ public class WhiteboardDownloadFragment extends Fragment {
                     Whiteboard.WhiteBoardBuilder wb = new Whiteboard.WhiteBoardBuilder()
                             .setDescription(description)
                             .setTitle(title)
-                            .setPath(path).setCreated(created)
+                            .setImageFileName(path)
+                            .setCreated(created)
                             .setUpdated(System.currentTimeMillis())
                             .setGuid(guid);
                     whiteboard = wb.build();
@@ -311,12 +307,12 @@ public class WhiteboardDownloadFragment extends Fragment {
                 titleView.setText(whiteboard.getTitle());
                 descriptionView.setText(whiteboard.getDescription());
 
-//                BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), whiteboard.getPath());
+//                BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), whiteboard.getImageFileName());
 //                mImageView.setImageDrawable(image, null, -1, 8f);
 
                 FileInputStream is = null;
                 try {
-                    is = new FileInputStream(whiteboard.getPath());
+                    is = new FileInputStream(whiteboard.getImageFileName());
                     TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, null, null);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();

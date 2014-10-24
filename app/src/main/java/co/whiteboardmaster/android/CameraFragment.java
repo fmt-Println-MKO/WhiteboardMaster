@@ -31,6 +31,9 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+
+import co.whiteboardmaster.android.utils.PictureUtils;
 
 /**
  * Created by matthiaskoch on 16.10.14.
@@ -39,6 +42,7 @@ public class CameraFragment extends Fragment {
     private static final String TAG = "WMCameraFragment";
 
     public static final String EXTRA_PHOTO_FILENAME = "co.whiteboardmaster.android.whiteboardintent.filename";
+    public static final String EXTRA_THUMB_PHOTO_FILENAME = "co.whiteboardmaster.android.whiteboardintent.thumbfilename";
 
     private Camera mCamera;
     private SurfaceView mSurfaceView;
@@ -58,86 +62,14 @@ public class CameraFragment extends Fragment {
 
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-//            File mediaStorageDir = new File(Environment.getExternalStorageDirectory(), "WhiteboardMaster");
-            File mediaStorageDir = getActivity().getDir("whiteboardimages", Context.MODE_PRIVATE);
-//            This location works best if you want the created images to be shared
-//            between applications and persist after your app has been uninstalled.
 
-//            Create the storage directory if it does not exist
-            if (!mediaStorageDir.exists()) {
-                if (!mediaStorageDir.mkdirs()) {
-                    Log.d("WhiteboardMaster", "failed to create directory");
-                    return;
-                }
-            }
+            Map<PictureUtils.PictureType,String> pictures = PictureUtils.storeBitmap(data, rotation, getActivity());
 
-            // Create a media file name
-            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String fileName = "IMG_" + timeStamp + ".jpg";
-            File file = new File(mediaStorageDir.getPath() + File.separator + fileName);
-
-            boolean success = true;
-            FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(file);
-
-                Matrix matrix = new Matrix();
-                matrix.postRotate(rotation);
-//                Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
-                Bitmap bitmap = BitmapFactory.decodeStream(new ByteArrayInputStream(data));
-//
-
-
-//                Bitmap bitmap=BitmapFactory.decodeResource(getResources(),R.drawable.ic_launcher);
-//                final int width=bitmap.getWidth(),height=bitmap.getHeight();
-//                store the bitmap in the JNI "world"
-                final JniBitmapHolder bitmapHolder = new JniBitmapHolder(bitmap);
-                // no need for the bitmap on the java "world", since the operations are done on the JNI "world"
-                bitmap.recycle();
-                // crop a center square from the bitmap, from (0.25,0.25) to (0.75,0.75) of the bitmap.
-//                bitmapHolder.cropBitmap(width/4,height/4,width*3/4,height*3/4);
-                //rotate the bitmap:
-                switch (rotation) {
-                    case (90):
-                        bitmapHolder.rotateBitmapCw90();
-                        break;
-                    case (180):
-                        bitmapHolder.rotateBitmap180();
-                        break;
-                    case (270):
-                        bitmapHolder.rotateBitmapCcw90();
-
-                        bitmapHolder.rotateBitmapCcw90();
-                        break;
-                }
-
-                //get the output java bitmap , and free the one on the JNI "world"
-                bitmap = bitmapHolder.getBitmapAndFree();
-
-
-//                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                //fos.write(data);
-            } catch (Exception e) {
-                Log.e(TAG, "error writing to file.: " + fileName, e);
-                success = false;
-            } finally {
-                try {
-                    if (fos != null) {
-                        fos.close();
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "error closing file: " + fileName);
-                    success = false;
-                }
-            }
-            if (success) {
-                Log.i(TAG, "Whiteboard saved at: " + file.getAbsolutePath());
-//                Log.i(TAG, "Whiteboard saved at: " + fileName);
+            if (pictures != null) {
 
                 Intent i = new Intent(getActivity(), EditWhiteboardActivity.class);
-                i.putExtra(EXTRA_PHOTO_FILENAME, file.getAbsolutePath());
-//                i.putExtra(EXTRA_PHOTO_FILENAME, fileName);
+                i.putExtra(EXTRA_PHOTO_FILENAME, pictures.get(PictureUtils.PictureType.IMAGE));
+                i.putExtra(EXTRA_THUMB_PHOTO_FILENAME, pictures.get(PictureUtils.PictureType.THUMBNAIL));
                 mProgressContainer.setVisibility(View.INVISIBLE);
                 startActivity(i);
             } else {
@@ -188,10 +120,14 @@ public class CameraFragment extends Fragment {
             public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
                 if (mCamera == null) return;
                 Parameters parameters = mCamera.getParameters();
-                Size s = getBestSupportedSize(parameters.getSupportedPreviewSizes());
-                parameters.setPreviewSize(s.width, s.height);
+                Size ps = getBestSupportedSize(parameters.getSupportedPreviewSizes());
+                parameters.setPreviewSize(ps.width, ps.height);
 
+
+                Size s = getBestSupportedSize(parameters.getSupportedPictureSizes());
                 parameters.setPictureSize(s.width, s.height);
+
+                Log.d(TAG,"-----taking image: " + s.width + " * " + s.height);
                 rotation = setCameraDisplayOrientation(getActivity(), mCamera);
 
                 mCamera.setParameters(setColorEffect(parameters));

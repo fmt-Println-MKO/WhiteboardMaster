@@ -1,5 +1,6 @@
 package co.whiteboardmaster.android.model;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.view.View;
 import android.widget.ImageView;
@@ -16,7 +17,7 @@ public class ThumbImageMessage {
     public int destWidth;
     public ImageView imageView;
     public View mProgressContainer;
-    public Resources resources;
+    public Context context;
     public String path;
 
     @Override

@@ -86,7 +86,7 @@ public class ImageLoaderThread<Token> extends HandlerThread {
 //        }
 //        final BitmapDrawable image = processedImage;
 
-        final BitmapDrawable image = PictureUtils.getScaledDrawable(imageMessage.destWidth, imageMessage.destHeight, path, imageMessage.resources);
+        final BitmapDrawable image = PictureUtils.getScaledDrawable(imageMessage.destWidth, imageMessage.destHeight, path, imageMessage.context);
         addBitmapToMemoryCache(imageId, image);
 
         mResponseHandler.post(new Runnable() {
@@ -118,6 +118,13 @@ public class ImageLoaderThread<Token> extends HandlerThread {
     public void clearQueue() {
         mHandler.removeMessages(ThumbImageMessage.THUMB_IMAGE);
         requestMap.clear();
+    }
+
+    @Override
+    public boolean quit(){
+        mMemoryCache.evictAll();
+        mMemoryCache = null;
+        return super.quit();
     }
 
     public void addBitmapToMemoryCache(Integer key, BitmapDrawable bitmap) {
