@@ -1,21 +1,13 @@
 package co.whiteboardmaster.android.utils;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
-import android.view.View;
 import android.widget.ImageView;
 
-import com.jni.bitmap_operations.JniBitmapHolder;
-
-import java.io.ByteArrayInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
@@ -23,9 +15,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.microedition.khronos.opengles.GL10;
-
-import co.whiteboardmaster.android.EditWhiteboardActivity;
+import fakeawt.Rectangle;
+import magick.CompressionType;
+import magick.ImageInfo;
+import magick.MagickImage;
 
 /**
  * Created by matthiaskoch on 16.10.14.
@@ -40,8 +33,8 @@ public class PictureUtils {
     }
 
     public static BitmapDrawable getScaledDrawable(int destDPWidth, int destDPHeight, String path, Context context) {
-        int destWidth = getPixelFromDP(destDPWidth,context);
-        int destHeight = getPixelFromDP(destDPHeight,context);
+        int destWidth = getPixelFromDP(destDPWidth, context);
+        int destHeight = getPixelFromDP(destDPHeight, context);
 
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
@@ -70,12 +63,6 @@ public class PictureUtils {
         return new BitmapDrawable(context.getResources(), bitmap);
     }
 
-//    private static int dpToPx(int dp, Resources r) {
-//        DisplayMetrics displayMetrics = r.getDisplayMetrics();
-//        int px = Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
-//        return px;
-//    }
-
     public static void cleanImageView(ImageView imageView) {
         if (!(imageView.getDrawable() instanceof BitmapDrawable)) {
             return;
@@ -87,59 +74,55 @@ public class PictureUtils {
 
 
     public static File getStorageDir(Context context) {
-        return  context.getDir("whiteboardimages", Context.MODE_PRIVATE);
+        return context.getDir("whiteboardimages", Context.MODE_PRIVATE);
     }
 
     public static String getPathToFile(Context context, String fileName) {
         return getStorageDir(context).getPath() + File.separator + fileName;
     }
 
-    public static Map<PictureType,String> storeBitmap(byte[] data, int rotation, Context context) {
+    public static Map<PictureType, String> storeBitmap(byte[] data, int rotation, Context context) {
 
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String fileName = "IMG_" + timeStamp + ".jpg";
         String thumbFileName = "THUMB_" + timeStamp + ".jpg";
-        File file = new File(getPathToFile(context,fileName));
-        File thmubFile = new File(getPathToFile(context,thumbFileName));
+        File thumbFile = new File(getPathToFile(context, thumbFileName));
 
         boolean success = true;
-        FileOutputStream fos = null;
-        FileOutputStream tfos = null;
+        BufferedOutputStream tbos = null;
         try {
-            fos = new FileOutputStream(file);
-            tfos = new FileOutputStream(thmubFile);
+            tbos = new BufferedOutputStream(new FileOutputStream(thumbFile));
 
-            Bitmap bitmap = BitmapFactory.decodeStream(new ByteArrayInputStream(data));
+            Log.d(TAG, "--store image: bytes: " + data.length);
 
-            final JniBitmapHolder bitmapHolder = new JniBitmapHolder(bitmap);
-            bitmap.recycle();
-            bitmap = null;
+            ImageInfo info = new ImageInfo(getPathToFile(context, fileName));
+            info.setMagick("jpeg");
+            MagickImage img = new MagickImage(info, data);
+            img.setCompression(CompressionType.JPEGCompression);
+            img.setCompression(100);
+
             //rotate the bitmap:
             switch (rotation) {
                 case (90):
-                    bitmapHolder.rotateBitmapCw90();
+                    img = img.rotateImage(90);
                     break;
                 case (180):
-                    bitmapHolder.rotateBitmap180();
+                    img = img.rotateImage(180);
                     break;
                 case (270):
-                    bitmapHolder.rotateBitmapCcw90();
-
-                    bitmapHolder.rotateBitmapCcw90();
+                    img = img.rotateImage(270);
                     break;
             }
+            boolean written = img.writeImage(info);
+            Log.d(TAG, "----image written: : -- " + written);
+            if (!written) {
+                throw new Exception("image could not be written");
+            }
 
-            //get the output java bitmap , and free the one on the JNI "world"
-            bitmap = bitmapHolder.getBitmap();
+            float height = img.getHeight();
+            float width = img.getWidth();
 
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-            float height = bitmap.getHeight();
-            float width = bitmap.getWidth();
-
-            Log.d(TAG,"----stroing image: " + height +" * " + width);
-
-
-            bitmap.recycle();
+            Log.d(TAG, "----stroing image: " + height + " * " + width);
 
             boolean isPortrait = height > width;
 
@@ -147,66 +130,47 @@ public class PictureUtils {
             int scaleWidth = 100;
             if (isPortrait) {
                 float format = height / width;
-                Log.d(TAG,"----stroing scale h format: " +format);
-//                Log.d(TAG,"----stroing scale h format scaled: " +(scaleHeight *format));
+                Log.d(TAG, "----stroing scale h format: " + format);
                 scaleHeight = Math.round(scaleHeight * format);
 
             } else {
                 float format = width / height;
-                Log.d(TAG,"----stroing scale w format: " +format);
-//                Log.d(TAG,"----stroing scale w format scaled: " +(scaleWidth *format));
+                Log.d(TAG, "----stroing scale w format: " + format);
                 scaleWidth = Math.round(scaleWidth * format);
             }
 
-            Log.d(TAG,"----stroing scale thumb image: " + scaleHeight +" * " + scaleWidth);
+            Log.d(TAG, "----stroing scale thumb image: " + scaleHeight + " * " + scaleWidth);
 
-            int thumbHeight = getPixelFromDP(scaleHeight,context);
-            int thumbWidth = getPixelFromDP(scaleWidth,context);
+            int thumbHeight = getPixelFromDP(scaleHeight, context);
+            int thumbWidth = getPixelFromDP(scaleWidth, context);
 
             int height10Perctent = thumbHeight * 10 / 100;
             int width10Perctent = thumbWidth * 10 / 100;
 
-            bitmapHolder.scaleBitmap(thumbWidth + (width10Perctent *2 ), thumbHeight + (height10Perctent * 2), JniBitmapHolder.ScaleMethod.NearestNeighbour);
-            // crop a center square from the bitmap, from (0.25,0.25) to (0.75,0.75) of the bitmap.
-            if ( isPortrait) {
-               int left = width10Perctent;
-                int top = (thumbHeight - thumbWidth ) / 2 + height10Perctent;
-                int right = thumbWidth + width10Perctent;
-                int bottom = (thumbHeight - thumbWidth ) / 2 + height10Perctent + thumbWidth;
+            img = img.scaleImage(thumbWidth + (width10Perctent * 2), thumbHeight + (height10Perctent * 2));
 
-                bitmapHolder.cropBitmap(left,top,right,bottom);
+            // crop a center square from the bitmap, from (0.25,0.25) to (0.75,0.75) of the bitmap.
+            if (isPortrait) {
+                int top = (thumbHeight - thumbWidth) / 2 + height10Perctent;
+                img = img.cropImage(new Rectangle(width10Perctent, top, thumbWidth, thumbWidth));
             } else {
                 int left = (thumbWidth - thumbHeight) / 2 + width10Perctent;
-                int top =  height10Perctent;
-                int right = (thumbWidth - thumbHeight) / 2 + width10Perctent + thumbHeight;
-                int bottom = thumbHeight + height10Perctent;
-
-                bitmapHolder.cropBitmap(left,top,right,bottom);
+                img = img.cropImage(new Rectangle(left, height10Perctent, thumbHeight, thumbHeight));
             }
+            Log.d(TAG, "---written thumb image ");
+            ImageInfo thumbInfo = new ImageInfo(thumbFile.getAbsolutePath());
+            thumbInfo.setMagick("jpeg");
 
-
-            Bitmap thumbBitmap = bitmapHolder.getBitmapAndFree();
-            thumbBitmap.compress(Bitmap.CompressFormat.JPEG,85,tfos);
-
-            Log.d(TAG,"----stroing thumb image: " + thumbBitmap.getHeight() +" * " + thumbBitmap.getWidth());
-            thumbBitmap.recycle();
-            thumbBitmap = null;
+            byte[] thumbImage = img.imageToBlob(thumbInfo);
+            tbos.write(thumbImage);
 
         } catch (Exception e) {
             Log.e(TAG, "error writing to file.: " + fileName, e);
             success = false;
         } finally {
             try {
-                if (fos != null) {
-                    fos.close();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "error closing file: " + fileName);
-                success = false;
-            }
-            try {
-                if (tfos != null) {
-                    tfos.close();
+                if (tbos != null) {
+                    tbos.close();
                 }
             } catch (Exception e) {
                 Log.e(TAG, "error closing file: " + thumbFileName);
@@ -214,10 +178,10 @@ public class PictureUtils {
             }
         }
         if (success) {
-            Log.i(TAG, "Whiteboard saved at: " + file.getAbsolutePath());
-            Map<PictureType,String> pictures = new HashMap<PictureType, String>();
-            pictures.put(PictureType.THUMBNAIL,thumbFileName);
-            pictures.put(PictureType.IMAGE,fileName);
+            Log.i(TAG, "Whiteboard saved at: " + thumbFile.getAbsolutePath());
+            Map<PictureType, String> pictures = new HashMap<PictureType, String>();
+            pictures.put(PictureType.THUMBNAIL, thumbFileName);
+            pictures.put(PictureType.IMAGE, fileName);
 
             return pictures;
 
@@ -230,5 +194,4 @@ public class PictureUtils {
         float density = context.getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
     }
-
 }
