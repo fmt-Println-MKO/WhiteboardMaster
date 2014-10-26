@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import fakeawt.Rectangle;
@@ -187,6 +188,13 @@ public class PictureUtils {
 
         } else {
             return null;
+        }
+    }
+
+    public static void removeImagesFiles(Context context, List<String> files){
+        for (String fileName : files) {
+            File file = new File(getPathToFile(context,fileName));
+            file.delete();
         }
     }
 

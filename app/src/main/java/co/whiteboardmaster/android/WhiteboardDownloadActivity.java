@@ -10,7 +10,6 @@ public class WhiteboardDownloadActivity extends SingleFragmentActivity {
     @Override
     protected Fragment createFragment() {
 
-        // Get intent, action and MIME type
         Intent intent = getIntent();
         String data = intent.getDataString();
 

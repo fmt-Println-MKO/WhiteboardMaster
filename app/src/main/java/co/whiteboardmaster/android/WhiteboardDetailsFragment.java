@@ -1,6 +1,8 @@
 package co.whiteboardmaster.android;
 
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
@@ -43,17 +45,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import co.whiteboardmaster.android.model.Whiteboard;
 import co.whiteboardmaster.android.utils.PictureUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
-
-//import co.whiteboardmaster.android.view.TouchImageView;
-//import it.sephiroth.android.library.imagezoom.ImageViewTouch;
-//import it.sephiroth.android.library.imagezoom.ImageViewTouchBase;
-
-//import org.apache.http.entity.mime.MultipartEntityBuilder;
 
 /**
  * Created by matthiaskoch on 16.10.14.
@@ -74,13 +72,11 @@ public class WhiteboardDetailsFragment extends Fragment {
 
     private Handler mHandler;
 
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_whiteboard_detail, parent, false);
         final TouchImageView mImageView = (TouchImageView) v.findViewById(R.id.wm_whiteboard_detail_image);
 
-        final TextView title = (TextView) v.findViewById(R.id.wm_whiteboard_detail_title);
         final TextView description = (TextView) v.findViewById(R.id.wm_whiteboard_detail_description);
         mProgressContainer = v.findViewById(R.id.wm_whiteboard_detail_progress_container);
         mProgressContainer.setVisibility(View.INVISIBLE);
@@ -93,10 +89,9 @@ public class WhiteboardDetailsFragment extends Fragment {
 
         Log.d(TAG, "---- WhiteboardDetailsFragment onCreateView: " + wb);
 
-        title.setText(wb.getTitle());
         description.setText(wb.getDescription());
 
-        final ProgressBar progress = (ProgressBar) v.findViewById(R.id.wm_whiteboard_detail_image_progress);
+        final View progress = v.findViewById(R.id.wm_whiteboard_detail_image_progress_container);
 
         try {
             FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(), wb.getImageFileName()));
@@ -137,27 +132,8 @@ public class WhiteboardDetailsFragment extends Fragment {
         super.onCreate(savedInstance);
         setHasOptionsMenu(true);
         mHandler = new Handler(getActivity().getMainLooper());
-        Log.d(TAG, "---- WhiteboardDetailsFragment onCreate: " + wb);
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        Log.d(TAG, "---- WhiteboardDetailsFragment onResume: " + wb);
-    }
-
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        Log.d(TAG, "---- WhiteboardDetailsFragment onPause: " + wb);
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "---- WhiteboardDetailsFragment onDestroy: " + wb);
-    }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -170,19 +146,51 @@ public class WhiteboardDetailsFragment extends Fragment {
         switch (item.getItemId()) {
             case R.id.action_delete_whiteboard:
 
-                Log.i(TAG, "nothing ");
-                WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(getActivity());
-                boolean deleted = mHelper.deleteWhiteboard(wb.getId());
-                Intent i = new Intent(getActivity(), WhiteboardListActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(i);
+                Log.i(TAG, "deleting whiteboard ");
+
+                // 1. Instantiate an AlertDialog.Builder with its constructor
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+
+                // 2. Chain together various setter methods to set the dialog characteristics
+                builder.setTitle(R.string.delete_whiteboard_dialog);
+                // Add the buttons
+                builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(getActivity());
+                        boolean deleted = mHelper.deleteWhiteboard(wb.getId());
+                        if (deleted) {
+                            List<String> files = new ArrayList<String>(2);
+                            files.add(wb.getImageFileName());
+                            files.add(wb.getThumbFileName());
+                            PictureUtils.removeImagesFiles(getActivity(), files);
+                        }
+                        Intent i = new Intent(getActivity(), WhiteboardListActivity.class);
+                        i.putExtra(WhiteboardListFragment.WHITEBOARD_DATA_CHANGED, true);
+                        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(i);
+                    }
+                });
+                builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                    }
+                });
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+
                 return true;
 
 
             case R.id.action_share_whiteboard:
                 Log.i(TAG, "sharing Whiteboard ");
                 try {
-                    new ShareWhiteboardTask().execute();
+                    if (wb.getGuid() == null || wb.getGuid().isEmpty()) {
+                        new ShareWhiteboardTask().execute();
+                    } else {
+                        sendShareMail();
+                    }
                 } catch (Exception e) {
                     Log.e(TAG, "error during share", e);
                 }
@@ -329,32 +337,11 @@ public class WhiteboardDetailsFragment extends Fragment {
                 if (guid != null) {
 
                     WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(getActivity());
-                    Whiteboard whiteboard = new Whiteboard.WhiteBoardBuilder(wb).setGuid(guid).build();
-                    boolean updated = mHelper.updateWhiteBoard(whiteboard);
+                    wb = new Whiteboard.WhiteBoardBuilder(wb).setGuid(guid).build();
+                    boolean updated = mHelper.updateWhiteBoard(wb);
                     Log.d(TAG, "whiteboard updated: " + updated);
 
-                    StringBuilder sb = new StringBuilder("Whiteboard Master");
-                    sb.append("\n");
-                    sb.append(wb.getTitle());
-                    sb.append("\n");
-                    sb.append(wb.getDescription());
-                    sb.append("\n");
-                    sb.append(new Date(wb.getCreated()));
-                    sb.append("\n");
-                    sb.append("\n");
-                    sb.append(SERVER_SHARE_URL);
-                    sb.append(guid);
-
-                    Intent share = new Intent(Intent.ACTION_SEND);
-                    share.setType("message/rfc822");
-                    share.putExtra(Intent.EXTRA_SUBJECT, wb.getTitle() + " : Whiteboard Master");
-                    share.putExtra(Intent.EXTRA_TEXT, sb.toString());
-                    startActivity(Intent.createChooser(share, "Choose how to share this Whiteboard"));
-                    mHandler.post(new Runnable() {
-                        public void run() {
-                            mProgressContainer.setVisibility(View.INVISIBLE);
-                        }
-                    });
+                    sendShareMail();
                 } else {
 
                     mHandler.post(new Runnable() {
@@ -375,5 +362,31 @@ public class WhiteboardDetailsFragment extends Fragment {
                 });
             }
         }
+    }
+
+    private void sendShareMail() {
+
+        StringBuilder sb = new StringBuilder("Whiteboard Master");
+        sb.append("\n");
+        sb.append(wb.getTitle());
+        sb.append("\n");
+        sb.append(wb.getDescription());
+        sb.append("\n");
+        sb.append(new Date(wb.getCreated()));
+        sb.append("\n");
+        sb.append("\n");
+        sb.append(SERVER_SHARE_URL);
+        sb.append(wb.getGuid());
+
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("message/rfc822");
+        share.putExtra(Intent.EXTRA_SUBJECT, wb.getTitle() + " : Whiteboard Master");
+        share.putExtra(Intent.EXTRA_TEXT, sb.toString());
+        startActivity(Intent.createChooser(share, "Choose how to share this Whiteboard"));
+        mHandler.post(new Runnable() {
+            public void run() {
+                mProgressContainer.setVisibility(View.INVISIBLE);
+            }
+        });
     }
 }

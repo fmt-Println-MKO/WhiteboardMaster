@@ -1,8 +1,8 @@
 package co.whiteboardmaster.android;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
 import android.os.Build;
@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -22,6 +24,7 @@ import android.widget.GridView;
 import android.widget.Toast;
 
 import co.whiteboardmaster.android.adapter.WhiteboardCursorAdapter;
+import co.whiteboardmaster.android.loader.WhiteboardCursorLoader;
 import co.whiteboardmaster.android.model.ThumbImageMessage;
 import co.whiteboardmaster.android.utils.ImageLoaderThread;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
@@ -29,28 +32,24 @@ import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
 /**
  * Created by matthiaskoch on 16.10.14.
  */
-public class WhiteboardListFragment extends Fragment {
+public class WhiteboardListFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final String TAG = "WMWhiteboardListFragment";
 
-    public static final String WHITEBOARD = "whiteboard";
-    public static final String WHITEBOARD_POSITION = "whiteboard_position";
-
-    private static final int REQUEST_NEW_WHITEBOARD = 1;
-
-    private WhiteboardDatabaseHelper.WhiteboardCursor mCursor;
-    private WhiteboardDatabaseHelper mHelper;
+    public static final String WHITEBOARD = "co.whiteboardmaster.android.whiteboard";
+    public static final String WHITEBOARD_POSITION = "co.whiteboardmaster.android.whiteboard_position";
+    public static final String WHITEBOARD_DATA_CHANGED = "co.whiteboardmaster.android.whiteboard_data_changed";
 
     private ImageLoaderThread<ThumbImageMessage> mImageLoaderThread;
 
-    private WhiteboardCursorAdapter adapter;
+    private GridView gridView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_whiteboard_list, parent, false);
 
-        GridView gridView = (GridView) v.findViewById(R.id.wm_whiteboard_grid_list);
-        Log.i(TAG, "---- Whiteboardlist Fragment gridView created ");
+        gridView = (GridView) v.findViewById(R.id.wm_whiteboard_grid_list);
+//        Log.i(TAG, "---- Whiteboardlist Fragment gridView created ");
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -62,7 +61,7 @@ public class WhiteboardListFragment extends Fragment {
             }
         });
 
-        Log.i(TAG, "---- Whiteboardlist Fragment onCreateView ");
+//        Log.i(TAG, "---- Whiteboardlist Fragment onCreateView ");
 
         if (mImageLoaderThread == null) {
             mImageLoaderThread = new ImageLoaderThread<ThumbImageMessage>(new Handler());
@@ -75,26 +74,11 @@ public class WhiteboardListFragment extends Fragment {
             });
             mImageLoaderThread.start();
             mImageLoaderThread.getLooper();
-            Log.i(TAG, "---- image loader thread startet");
+            Log.i(TAG, "ImageLoaderThread started");
 
         }
 
-        if (mHelper == null) {
-            mHelper = new WhiteboardDatabaseHelper(getActivity());
-        }
-
-        if (mCursor == null) {
-            mCursor = mHelper.queryWhiteboards();
-        }
-
-        if (adapter == null) {
-            adapter = new WhiteboardCursorAdapter(getActivity(), mCursor, mImageLoaderThread);
-
-        }
-
-
-        gridView.setAdapter(adapter);
-
+        getLoaderManager().initLoader(0, null, this);
         return v;
     }
 
@@ -102,10 +86,10 @@ public class WhiteboardListFragment extends Fragment {
         WhiteboardListFragment fragment = (WhiteboardListFragment) fm.findFragmentByTag(TAG);
         if (fragment == null) {
             fragment = new WhiteboardListFragment();
+            fragment.setArguments(new Bundle());
             fm.beginTransaction().add(R.id.fragmentContainer, fragment, TAG).commit();
-            Log.i(TAG, "---- findOrCreateRetainFragment created new fragment");
+//            Log.i(TAG, "---- findOrCreateRetainFragment created new fragment");
         }
-
         return fragment;
     }
 
@@ -114,14 +98,13 @@ public class WhiteboardListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         setHasOptionsMenu(true);
-        Log.i(TAG, "----- Whiteboard List Fragment created ");
+//        Log.i(TAG, "----- Whiteboard List Fragment created ");
 
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mCursor.close();
         mImageLoaderThread.quit();
     }
 
@@ -134,22 +117,17 @@ public class WhiteboardListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        if (getArguments() != null) {
+            boolean dataChanged = getArguments().getBoolean(WHITEBOARD_DATA_CHANGED);
 
-
-    }
-
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode != Activity.RESULT_OK) return;
-
-        if (requestCode == REQUEST_NEW_WHITEBOARD) {
-            String filename = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
-            if (filename != null) {
-                Log.i(TAG, "received filename: " + filename);
+            if (dataChanged) {
+                getLoaderManager().restartLoader(0, null, this);
+//                Log.d(TAG, "--- data changed");
             }
         }
+
     }
+
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -165,8 +143,7 @@ public class WhiteboardListFragment extends Fragment {
                 PackageManager pm = getActivity().getPackageManager();
                 boolean hasCamera = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA) || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD && Camera.getNumberOfCameras() > 0);
                 if (hasCamera) {
-                    Intent i = new Intent(getActivity(), CameraActivity.class);
-                    startActivityForResult(i, 1);
+                    startActivity(new Intent(getActivity(), CameraActivity.class));
                 } else {
                     Toast.makeText(getActivity(), R.string.no_cam, Toast.LENGTH_LONG).show();
                 }
@@ -177,4 +154,21 @@ public class WhiteboardListFragment extends Fragment {
         }
     }
 
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        return new WhiteboardCursorLoader(getActivity());
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
+        WhiteboardCursorAdapter adapter = new WhiteboardCursorAdapter(getActivity(), (WhiteboardDatabaseHelper.WhiteboardCursor) cursor, mImageLoaderThread);
+        gridView.setAdapter(adapter);
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> cursorLoader) {
+        gridView.setAdapter(null);
+    }
 }

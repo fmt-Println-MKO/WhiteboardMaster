@@ -16,6 +16,8 @@ import com.diegocarloslima.byakugallery.lib.TouchImageView;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 
 import co.whiteboardmaster.android.model.Whiteboard;
 import co.whiteboardmaster.android.utils.PictureUtils;
@@ -26,7 +28,7 @@ import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
  */
 public class EditWhiteboardFragment extends Fragment {
 
-    private static final String TAG = "WMEditWhiteboardFragment";
+    private static final String TAG = "EditWhiteboardFragment";
 
     private static final int REQUEST_NEW_WHITEBOARD = 1;
 
@@ -51,7 +53,7 @@ public class EditWhiteboardFragment extends Fragment {
         final ProgressBar progress = (ProgressBar) v.findViewById(R.id.wm_edit_whiteboard_image_progress);
 
         try {
-            FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(),imageFilename));
+            FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(), imageFilename));
             TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, null, new TileBitmapDrawable.OnInitializeListener() {
 
                 @Override
@@ -83,10 +85,11 @@ public class EditWhiteboardFragment extends Fragment {
                         .setThumbFileName(thumbFileName)
                         .setCreated(System.currentTimeMillis())
                         .setUpdated(System.currentTimeMillis());
-                Whiteboard whiteboard = wb.build();
-                long count = mHelper.insertWhiteboard(whiteboard);
-                Log.i(TAG, "insert new whiteboard: " + count);
+
+                Whiteboard whiteboard = mHelper.insertWhiteboard(wb.build());
+                Log.i(TAG, "insert new whiteboard: " + whiteboard);
                 Intent i = new Intent(getActivity(), WhiteboardListActivity.class);
+                i.putExtra(WhiteboardListFragment.WHITEBOARD_DATA_CHANGED, true);
                 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(i);
 
@@ -95,18 +98,10 @@ public class EditWhiteboardFragment extends Fragment {
         return v;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-//        BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), imageFilename);
-//        mImageView.setImageDrawable(image);
-    }
-
     public static EditWhiteboardFragment newInstance(String imageFilename, String thumbFileName) {
         Bundle args = new Bundle();
         args.putSerializable(CameraFragment.EXTRA_PHOTO_FILENAME, imageFilename);
         args.putSerializable(CameraFragment.EXTRA_THUMB_PHOTO_FILENAME, thumbFileName);
-
         EditWhiteboardFragment fragment = new EditWhiteboardFragment();
         fragment.setArguments(args);
         return fragment;
@@ -116,6 +111,13 @@ public class EditWhiteboardFragment extends Fragment {
     public void onPause() {
         super.onPause();
         PictureUtils.cleanImageView(mImageView);
+    }
+
+    public void onBackPressed() {
+        List<String> files = new ArrayList<String>(2);
+        files.add(imageFilename);
+        files.add(thumbFileName);
+        PictureUtils.removeImagesFiles(getActivity(), files);
     }
 
 }

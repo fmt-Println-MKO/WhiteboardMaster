@@ -12,7 +12,7 @@ public class ThumbImageMessage {
 
     public static int THUMB_IMAGE = 1;
 
-    public int imageId;
+    public long imageId;
     public int destHeight;
     public int destWidth;
     public ImageView imageView;

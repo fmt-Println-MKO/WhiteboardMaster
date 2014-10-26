@@ -19,11 +19,11 @@ public class ImageLoaderThread<Token> extends HandlerThread {
 
     private static final String TAG = "ImageLoaderThread";
 
-    private LruCache<Integer, BitmapDrawable> mMemoryCache;
+    private LruCache<Long, BitmapDrawable> mMemoryCache;
 
 
     Handler mHandler;
-    private Map<Token, Integer> requestMap = Collections.synchronizedMap(new HashMap<Token, Integer>());
+    private Map<Token, Long> requestMap = Collections.synchronizedMap(new HashMap<Token, Long>());
 
     private Handler mResponseHandler;
     private Listener<Token> mListener;
@@ -44,9 +44,9 @@ public class ImageLoaderThread<Token> extends HandlerThread {
         // Use 1/8th of the available memory for this memory cache.
         final int cacheSize = maxMemory / 8;
 
-        mMemoryCache = new LruCache<Integer, BitmapDrawable>(cacheSize) {
+        mMemoryCache = new LruCache<Long, BitmapDrawable>(cacheSize) {
             @Override
-            protected int sizeOf(Integer key, BitmapDrawable bitmap) {
+            protected int sizeOf(Long key, BitmapDrawable bitmap) {
                 // The cache size will be measured in kilobytes rather than
                 // number of items.
                 return bitmap.getBitmap().getByteCount() / 1024;
@@ -74,43 +74,26 @@ public class ImageLoaderThread<Token> extends HandlerThread {
     private void handleImage(final Token token) {
         ThumbImageMessage imageMessage = (ThumbImageMessage) token;
         final String path = imageMessage.path;
-        final int imageId = imageMessage.imageId;
-//        Log.i(TAG, "------handle image loading: " + imageId);
-//        BitmapDrawable processedImage = null;
-//        Bitmap cachedImage = getBitmapFromMemCache(imageId);
-//        if (cachedImage == null) {
-//            processedImage = PictureUtils.getScaledDrawable(imageMessage.destWidth, imageMessage.destHeight, path, imageMessage.resources);
-//            addBitmapToMemoryCache(imageId, processedImage.getBitmap());
-//        } else {
-//            processedImage = new BitmapDrawable(imageMessage.resources, cachedImage);
-//        }
-//        final BitmapDrawable image = processedImage;
-
+        final long imageId = imageMessage.imageId;
         final BitmapDrawable image = PictureUtils.getScaledDrawable(imageMessage.destWidth, imageMessage.destHeight, path, imageMessage.context);
-        addBitmapToMemoryCache(imageId, image);
+        if (image.getBitmap() != null) {
+            addBitmapToMemoryCache(imageId, image);
+        }
 
         mResponseHandler.post(new Runnable() {
             @Override
             public void run() {
-//                System.out.println("--- " + requestMap);
-//                System.out.println("--- " + token);
-//                System.out.println("--- " + imageId);
-//                System.out.println("--- " + requestMap.get(token));
-                if (requestMap.get(token) == null || requestMap.get(token).intValue() != imageId) {
-                    //image.getBitmap().recycle();
+                if (requestMap.get(token) == null || requestMap.get(token) != imageId) {
                     return;
                 }
                 requestMap.remove(token);
                 mListener.onImageLoaded(token, image);
-//                Log.i(TAG, "-----handle image loading: " +  image.getBitmap());
-//                addBitmapToMemoryCache(imageId, image);
-
             }
         });
     }
 
-    public void queueImage(Token token, int imageId) {
-        requestMap.put(token, new Integer(imageId));
+    public void queueImage(Token token, long imageId) {
+        requestMap.put(token, imageId);
         mHandler.obtainMessage(ThumbImageMessage.THUMB_IMAGE, token).sendToTarget();
 
     }
@@ -121,19 +104,19 @@ public class ImageLoaderThread<Token> extends HandlerThread {
     }
 
     @Override
-    public boolean quit(){
+    public boolean quit() {
         mMemoryCache.evictAll();
         mMemoryCache = null;
         return super.quit();
     }
 
-    public void addBitmapToMemoryCache(Integer key, BitmapDrawable bitmap) {
+    public void addBitmapToMemoryCache(Long key, BitmapDrawable bitmap) {
         if (getBitmapFromMemCache(key) == null) {
             mMemoryCache.put(key, bitmap);
         }
     }
 
-    public BitmapDrawable getBitmapFromMemCache(Integer key) {
+    public BitmapDrawable getBitmapFromMemCache(Long key) {
         return mMemoryCache.get(key);
     }
 

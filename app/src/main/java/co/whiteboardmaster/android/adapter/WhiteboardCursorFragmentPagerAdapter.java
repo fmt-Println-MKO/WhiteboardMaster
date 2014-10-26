@@ -23,8 +23,11 @@ public class WhiteboardCursorFragmentPagerAdapter extends FragmentStatePagerAdap
     protected HashMap<Object, Integer> mObjectMap;
     protected int mRowIDColumn;
 
+    private FragmentManager fm;
+
     public WhiteboardCursorFragmentPagerAdapter(Context context, FragmentManager fm, WhiteboardDatabaseHelper.WhiteboardCursor cursor) {
         super(fm);
+        this.fm = fm;
 
         init(context, cursor);
     }
@@ -63,5 +66,15 @@ public class WhiteboardCursorFragmentPagerAdapter extends FragmentStatePagerAdap
         } else {
             return 0;
         }
+    }
+
+    @Override
+    public String getPageTitle(int position) {
+        return mCursor.getWhiteboard(position).getTitle();
+    }
+
+
+    public long getItemcreated(int position) {
+        return mCursor.getWhiteboard(position).getCreated();
     }
 }

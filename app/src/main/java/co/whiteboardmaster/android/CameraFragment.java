@@ -34,10 +34,10 @@ public class CameraFragment extends Fragment {
     public static final String EXTRA_THUMB_PHOTO_FILENAME = "co.whiteboardmaster.android.whiteboardintent.thumbfilename";
 
     private Camera mCamera;
-    private SurfaceView mSurfaceView;
     private View mProgressContainer;
 
     private int rotation;
+    private ImageButton takePictureButton;
 
     private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
 
@@ -75,18 +75,26 @@ public class CameraFragment extends Fragment {
         mProgressContainer = v.findViewById(R.id.wm_camera_progress_container);
         mProgressContainer.setVisibility(View.INVISIBLE);
 
-        ImageButton takePictureButton = (ImageButton) v.findViewById(R.id.wm_camera_takePictureButton);
+        takePictureButton = (ImageButton) v.findViewById(R.id.wm_camera_takePictureButton);
+//        takePictureButton.setEnabled(false);
         takePictureButton.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
                 if (mCamera != null) {
-                    mCamera.takePicture(mShutterCallback, null, mJPegCallback);
+                    mCamera.autoFocus(new Camera.AutoFocusCallback() {
+
+                        @Override
+                        public void onAutoFocus(boolean success, Camera camera) {
+                            mCamera.takePicture(mShutterCallback, null, mJPegCallback);
+                        }
+                    });
+
                 }
             }
         });
 
-        mSurfaceView = (SurfaceView) v.findViewById(R.id.wm_camera_surfaceView);
+        final SurfaceView mSurfaceView = (SurfaceView) v.findViewById(R.id.wm_camera_surfaceView);
         SurfaceHolder holder = mSurfaceView.getHolder();
         holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
@@ -122,6 +130,7 @@ public class CameraFragment extends Fragment {
                 mCamera.setParameters(setColorEffect(parameters));
                 try {
                     mCamera.startPreview();
+
                 } catch (Exception e) {
                     Log.e(TAG, "could not start preview", e);
                     mCamera.release();

@@ -51,10 +51,16 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    public long insertWhiteboard(Whiteboard whiteboard) {
+    public Whiteboard insertWhiteboard(Whiteboard whiteboard) {
         ContentValues cv = makeBaseContentValues(whiteboard);
         cv.put(COLUMN_WHITEBOARD_CREATED, whiteboard.getCreated());
-        return getWritableDatabase().insert(TABLE_WM, null, cv);
+
+        long id = getWritableDatabase().insert(TABLE_WM, null, cv);
+        if (id > 0) {
+            return  new Whiteboard.WhiteBoardBuilder(whiteboard).setId(id).build();
+        } else {
+            return null;
+        }
     }
 
     public WhiteboardCursor queryWhiteboards() {
@@ -62,13 +68,13 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
         return new WhiteboardCursor(wrapped);
     }
 
-    public boolean deleteWhiteboard(int id) {
+    public boolean deleteWhiteboard(long id) {
         int rows = getWritableDatabase().delete(TABLE_WM, COLUMN_WHITEBOARD_ID + " = ?", new String[]{String.valueOf(id)});
         return rows == 1;
     }
 
     public boolean updateWhiteBoard(Whiteboard wb) {
-        int rows = getWritableDatabase().update(TABLE_WM,makeBaseContentValues(wb), COLUMN_WHITEBOARD_ID + " =? ",new String[]{String.valueOf(wb.getId())} );
+        int rows = getWritableDatabase().update(TABLE_WM, makeBaseContentValues(wb), COLUMN_WHITEBOARD_ID + " =? ", new String[]{String.valueOf(wb.getId())});
         return rows == 1;
     }
 
@@ -81,7 +87,7 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
         return null;
     }
 
-    private ContentValues makeBaseContentValues(Whiteboard whiteboard ) {
+    private ContentValues makeBaseContentValues(Whiteboard whiteboard) {
         ContentValues cv = new ContentValues();
         cv.put(COLUMN_WHITEBOARD_UPDATED, System.currentTimeMillis());
         cv.put(COLUMN_WHITEBOARD_TITLE, whiteboard.getTitle());
@@ -120,7 +126,7 @@ public class WhiteboardDatabaseHelper extends SQLiteOpenHelper {
                 return null;
             }
             Whiteboard.WhiteBoardBuilder wb = new Whiteboard.WhiteBoardBuilder();
-            wb.setId(getInt(getColumnIndex(COLUMN_WHITEBOARD_ID)));
+            wb.setId(getLong(getColumnIndex(COLUMN_WHITEBOARD_ID)));
             wb.setTitle(getString(getColumnIndex(COLUMN_WHITEBOARD_TITLE)));
             wb.setDescription(getString(getColumnIndex(COLUMN_WHITEBOARD_DESCRIPTION)));
             wb.setImageFileName(getString(getColumnIndex(COLUMN_WHITEBOARD_IMAGE_FILENAME)));
