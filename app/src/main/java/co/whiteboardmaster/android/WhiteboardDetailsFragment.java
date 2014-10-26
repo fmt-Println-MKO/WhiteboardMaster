@@ -2,12 +2,14 @@ package co.whiteboardmaster.android;
 
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.PowerManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -23,34 +25,24 @@ import android.widget.Toast;
 import com.diegocarloslima.byakugallery.lib.TileBitmapDrawable;
 import com.diegocarloslima.byakugallery.lib.TouchImageView;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FilterOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import co.whiteboardmaster.android.model.Whiteboard;
+import co.whiteboardmaster.android.utils.MultipartRequestBuilder;
 import co.whiteboardmaster.android.utils.PictureUtils;
+import co.whiteboardmaster.android.utils.StreamUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
 
 /**
@@ -187,7 +179,7 @@ public class WhiteboardDetailsFragment extends Fragment {
                 Log.i(TAG, "sharing Whiteboard ");
                 try {
                     if (wb.getGuid() == null || wb.getGuid().isEmpty()) {
-                        new ShareWhiteboardTask().execute();
+                        new ShareWhiteboardTask(getActivity()).execute(wb);
                     } else {
                         sendShareMail();
                     }
@@ -202,164 +194,134 @@ public class WhiteboardDetailsFragment extends Fragment {
     }
 
 
-    class ShareWhiteboardTask extends AsyncTask<Void, Void, Void> {
+    class ShareWhiteboardTask extends AsyncTask<Whiteboard, Integer, String> {
 
-        protected Void doInBackground(Void... args) {
+        final String boundary = "*****" + Long.toString(System.currentTimeMillis()) + "*****";
+
+        private PowerManager.WakeLock mWakeLock;
+        private Context context;
+        private String content;
+
+        public ShareWhiteboardTask(Context context) {
+            this.context = context;
+        }
+
+        protected String doInBackground(Whiteboard... whiteboards) {
+            Whiteboard whiteboard = whiteboards[0];
+
+            HttpURLConnection connection = null;
+            DataOutputStream outputStream = null;
+            InputStream inputStream = null;
+
             try {
-                mHandler.post(new Runnable() {
-                    public void run() {
-                        mProgressContainer.setVisibility(View.VISIBLE);
-                    }
-                });
-                postFile(PictureUtils.getPathToFile(getActivity(), wb.getImageFileName()), wb.getTitle(), wb.getDescription(), wb.getCreated());
-            } catch (Exception e) {
-                Log.e(TAG, "error during share: " + e.getMessage(), e);
+                File file = new File(PictureUtils.getPathToFile(getActivity(), whiteboard.getImageFileName()));
+                FileInputStream fileInputStream = new FileInputStream(file);
 
+                MultipartRequestBuilder requestBuilder = new MultipartRequestBuilder(boundary);
+                requestBuilder.addFilePart("Image", "Image", file);
+                requestBuilder.addTextPart("title", whiteboard.getTitle());
+                requestBuilder.addTextPart("description", whiteboard.getDescription());
+                requestBuilder.addTextPart("created", String.valueOf(whiteboard.getCreated()));
+
+                byte[] request = requestBuilder.getRequest();
+                requestBuilder.reset();
+
+                URL url = new URL(SERVER_API_URL);
+                connection = (HttpURLConnection) url.openConnection();
+
+                connection.setDoInput(true);
+                connection.setDoOutput(true);
+                connection.setUseCaches(false);
+                connection.setFixedLengthStreamingMode(request.length);
+
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Connection", "Keep-Alive");
+                connection.setRequestProperty("User-Agent", "Android Multipart HTTP Client 1.0");
+                connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+                outputStream = new DataOutputStream(connection.getOutputStream());
+
+                int bufferLength = 1024;
+                for (int i = 0; i < request.length; i += bufferLength) {
+                    int progress = (int) ((i / (float) request.length) * 100);
+                    publishProgress(progress);
+                    if (request.length - i >= bufferLength) {
+                        outputStream.write(request, i, bufferLength);
+                    } else {
+                        outputStream.write(request, i, request.length - i);
+                    }
+                }
+                publishProgress(100);
+
+                inputStream = connection.getInputStream();
+
+                // expect HTTP 200 OK, so we don't mistakenly save error report
+                // instead of the file
+                if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                    return "Server returned HTTP " + connection.getResponseCode()
+                            + " " + connection.getResponseMessage();
+                }
+
+                content = StreamUtils.convertStreamToString(inputStream);
+
+                fileInputStream.close();
+                inputStream.close();
+                outputStream.flush();
+                outputStream.close();
+            } catch (Exception e) {
+                Log.e(TAG, "error during sharing: ", e);
+                e.printStackTrace();
+                return e.toString();
             }
             return null;
         }
 
-        public void postFile(String path, String title, String description, long created) throws Exception {
-
-            HttpClient client = new DefaultHttpClient();
-            HttpPost post = new HttpPost(SERVER_API_URL);
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-
-            final File file = new File(path);
-            FileBody fb = new FileBody(file, ContentType.create("image/jpeg"), "Image");
-
-
-            builder.addPart("Image", fb);
-            builder.addTextBody("title", title);
-            builder.addTextBody("description", description);
-            builder.addTextBody("created", String.valueOf(created));
-            final HttpEntity wbEntity = builder.build();
-
-            class ProgressiveEntity implements HttpEntity {
-                @Override
-                public void consumeContent() throws IOException {
-                    wbEntity.consumeContent();
-                }
-
-                @Override
-                public InputStream getContent() throws IOException,
-                        IllegalStateException {
-                    return wbEntity.getContent();
-                }
-
-                @Override
-                public Header getContentEncoding() {
-                    return wbEntity.getContentEncoding();
-                }
-
-                @Override
-                public long getContentLength() {
-                    return wbEntity.getContentLength();
-                }
-
-                @Override
-                public Header getContentType() {
-                    return wbEntity.getContentType();
-                }
-
-                @Override
-                public boolean isChunked() {
-                    return wbEntity.isChunked();
-                }
-
-                @Override
-                public boolean isRepeatable() {
-                    return wbEntity.isRepeatable();
-                }
-
-                @Override
-                public boolean isStreaming() {
-                    return wbEntity.isStreaming();
-                }
-
-                @Override
-                public void writeTo(OutputStream outstream) throws IOException {
-
-                    class ProgressiveOutputStream extends FilterOutputStream {
-
-                        private long size;
-                        private long written;
-
-                        int progress;
-
-                        public ProgressiveOutputStream(OutputStream proxy) {
-                            super(proxy);
-                            size = wbEntity.getContentLength();
-                        }
-
-                        public void write(byte[] bts, int st, int end) throws IOException {
-                            written += end;
-                            out.write(bts, st, end);
-
-                            progress = Math.round((float) written / (float) size * 100);
-                            mHandler.post(new Runnable() {
-                                public void run() {
-                                    mProgressBar.setProgress(progress);
-                                }
-                            });
-
-                        }
-                    }
-
-                    wbEntity.writeTo(new ProgressiveOutputStream(outstream));
-                }
-
-            }
-
-            ProgressiveEntity myEntity = new ProgressiveEntity();
-
-            post.setEntity(myEntity);
-            HttpResponse response = client.execute(post);
-
-            getContent(response);
-
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // take CPU lock to prevent CPU from going off if the user
+            // presses the power button during download
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
+            mWakeLock.acquire();
+            mProgressContainer.setVisibility(View.VISIBLE);
+            mProgressBar.setIndeterminate(false);
+            mProgressBar.setMax(100);
+            mProgressBar.setProgress(0);
         }
 
-        public void getContent(HttpResponse response) throws IOException, JSONException {
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            super.onProgressUpdate(progress);
+            // if we get here, length is known, now set indeterminate to false
+            mProgressBar.setProgress(progress[0]);
+        }
 
-            if (response.getStatusLine().getStatusCode() == 200) {
-                BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-                String body = "";
-                String content = "";
-
-                while ((body = rd.readLine()) != null) {
-                    content += body + "\n";
-                }
-
-                JSONObject jObject = new JSONObject(content);
-                String guid = jObject.getString("guid");
-                if (guid != null) {
-
-                    WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(getActivity());
-                    wb = new Whiteboard.WhiteBoardBuilder(wb).setGuid(guid).build();
-                    boolean updated = mHelper.updateWhiteBoard(wb);
-                    Log.d(TAG, "whiteboard updated: " + updated);
-
-                    sendShareMail();
-                } else {
-
-                    mHandler.post(new Runnable() {
-                        public void run() {
-                            mProgressContainer.setVisibility(View.INVISIBLE);
-                            Toast.makeText(getActivity(), R.string.share_error, Toast.LENGTH_LONG).show();
-                        }
-                    });
-
-                }
-
+        @Override
+        protected void onPostExecute(String result) {
+            mWakeLock.release();
+            mProgressContainer.setVisibility(View.GONE);
+            if (result != null) {
+                Toast.makeText(getActivity(), R.string.share_error, Toast.LENGTH_LONG).show();
             } else {
-                mHandler.post(new Runnable() {
-                    public void run() {
-                        mProgressContainer.setVisibility(View.INVISIBLE);
+                try {
+                    JSONObject jObject = new JSONObject(content);
+                    String guid = jObject.getString("guid");
+                    if (guid != null) {
+
+                        WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(getActivity());
+                        wb = new Whiteboard.WhiteBoardBuilder(wb).setGuid(guid).build();
+                        boolean updated = mHelper.updateWhiteBoard(wb);
+                        Log.d(TAG, "whiteboard updated: " + updated);
+
+                        sendShareMail();
+                    } else {
                         Toast.makeText(getActivity(), R.string.share_error, Toast.LENGTH_LONG).show();
                     }
-                });
+                } catch (JSONException e) {
+                    Toast.makeText(getActivity(), R.string.share_error, Toast.LENGTH_LONG).show();
+                    e.printStackTrace();
+                }
             }
         }
     }

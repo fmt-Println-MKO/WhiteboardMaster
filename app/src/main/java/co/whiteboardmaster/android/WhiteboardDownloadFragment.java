@@ -36,6 +36,7 @@ import java.util.Map;
 
 import co.whiteboardmaster.android.model.Whiteboard;
 import co.whiteboardmaster.android.utils.PictureUtils;
+import co.whiteboardmaster.android.utils.StreamUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
 
 /**
@@ -142,13 +143,8 @@ public class WhiteboardDownloadFragment extends Fragment {
                             + " " + connection.getResponseMessage();
                 }
 
-                BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String body = "";
+                content = StreamUtils.convertStreamToString(connection.getInputStream());
 
-
-                while ((body = rd.readLine()) != null) {
-                    content += body + "\n";
-                }
             } catch (Exception e) {
                 return e.toString();
             } finally {
