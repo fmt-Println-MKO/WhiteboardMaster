@@ -1,35 +1,37 @@
 package co.whiteboardmaster.android;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentManager;
 
 /**
  * Created by matthiaskoch on 16.10.14.
  */
 public class WhiteboardListActivity extends FragmentActivity {
-//public class WhiteboardListActivity extends SingleFragmentActivity {
-//
-//    @Override
-//    protected Fragment createFragment() {
-//        return WhiteboardListFragment.findOrCreateRetainFragment(getSupportFragmentManager());
-//    }
+
+    private static final String TAG = "WhiteboardListActivity";
+
+    private WhiteboardListFragment fragment;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fragment);
 
-        WhiteboardListFragment fragment = WhiteboardListFragment.findOrCreateRetainFragment(getSupportFragmentManager());
+        fragment = WhiteboardListFragment.findOrCreateRetainFragment(getSupportFragmentManager());
 
-//        FragmentManager fm = getSupportFragmentManager();
-//        Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
-//        if (fragment == null) {
-//            fragment = createFragment();
-//            fm.beginTransaction().add(R.id.fragmentContainer,fragment).commit();
-//        }
     }
 
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
 
+        boolean dataChanged = intent.getBooleanExtra(WhiteboardListFragment.WHITEBOARD_DATA_CHANGED, false);
+
+        if (dataChanged) {
+            Bundle args = fragment.getArguments();
+            args.putBoolean(WhiteboardListFragment.WHITEBOARD_DATA_CHANGED, true);
+        }
+
+    }
 }

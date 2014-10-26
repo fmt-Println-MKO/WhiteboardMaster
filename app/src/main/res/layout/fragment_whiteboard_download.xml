@@ -4,41 +4,40 @@
     android:layout_height="match_parent">
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:background="@color/light_grey">
 
-        <TextView
-            android:id="@+id/wm_whiteboard_download_title"
+
+        <FrameLayout
+            android:id="@+id/wm_whiteboard_download_image_progress_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginRight="10dp"
-            android:textSize="18sp"
+            android:layout_height="match_parent"
             android:layout_gravity="center"
-            android:padding="5dp"/>
 
-        <it.sephiroth.android.library.imagezoom.ImageViewTouch
+            >
+
+            <ProgressBar
+                android:id="@+id/wm_whiteboard_download_image_progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"/>
+        </FrameLayout>
+
+        <com.diegocarloslima.byakugallery.lib.TouchImageView
             android:id="@+id/wm_whiteboard_download_image"
             android:layout_width="fill_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:contentDescription="whiteboard"
-            android:cropToPadding="true"
-            android:scaleType="centerInside" />
+            android:layout_weight="1" />
 
 
         <TextView
             android:id="@+id/wm_whiteboard_download_description"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp"
-            android:layout_marginRight="10dp"
-            android:padding="5dp"/>
+            android:background="@android:color/white"
+            android:layout_height="70dp"
+            android:padding="15dp"/>
 
         <ImageButton
             android:id="@+id/wm_whiteboard_download_finished"

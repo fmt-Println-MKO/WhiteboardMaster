@@ -65,11 +65,6 @@ public class WhiteboardCursorAdapter extends CursorAdapter {
 
         BitmapDrawable cachedImage = mImageLoaderThread.getBitmapFromMemCache(wb.getId());
 
-//        Log.d(TAG, " -------------  cachedImage: " + cachedImage);
-//        if (cachedImage != null) {
-//            Log.d(TAG, " ------------- recycled: " + cachedImage.getBitmap().isRecycled() + " -- " + cachedImage.getBitmap());
-//        }
-//
         if (cachedImage == null || cachedImage.getBitmap().isRecycled()) {
 //            Log.d(TAG, " ------------- null or recycled: " );
             mImageLoaderThread.queueImage(imageMessage, wb.getId());
@@ -77,15 +72,12 @@ public class WhiteboardCursorAdapter extends CursorAdapter {
 //            Log.d(TAG, " ------------- using: " + cachedImage.getBitmap().isRecycled() + " hash: " + cachedImage.getBitmap());
             imageMessage.mProgressContainer.setVisibility(View.INVISIBLE);
             imageMessage.imageView.setImageDrawable(cachedImage);
-
-//            mListener.onImageLoaded(token, image);
         }
-//        System.out.println("--------size: " + wb.getId() +" -  " + wb.getGuid());
     }
 
     @Override
     public Whiteboard getItem(int position) {
-//        Log.d(TAG," -------------  item pos:" + position);
+//        Log.d(TAG, " -------------  item pos:" + position);
         return mCursor.getWhiteboard(position);
     }
 }

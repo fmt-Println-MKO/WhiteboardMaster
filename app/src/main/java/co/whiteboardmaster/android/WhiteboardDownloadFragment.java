@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.support.v4.app.Fragment;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,20 +23,19 @@ import com.diegocarloslima.byakugallery.lib.TouchImageView;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 
 import co.whiteboardmaster.android.model.Whiteboard;
+import co.whiteboardmaster.android.utils.PictureUtils;
 import co.whiteboardmaster.android.utils.WhiteboardDatabaseHelper;
 
 /**
@@ -47,40 +47,29 @@ public class WhiteboardDownloadFragment extends Fragment {
     private static final String TAG = "WMWhiteboardDownloadFragment";
 
     public static final String WHITEBOARD_DOWNLOAD_URL = "whiteboard.download.url";
+    public static final String WHITEBOARD_GUID = "co.whiteboardmaster.android.guid";
 
-    private TextView titleView;
     private TextView descriptionView;
     private TouchImageView mImageView;
 
     private ProgressDialog mProgressDialog;
 
-    private String whiteboardUrl;
-
     private ImageButton finishedButton;
+    private  View progress;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_whiteboard_download, parent, false);
 
         mImageView = (TouchImageView) v.findViewById(R.id.wm_whiteboard_download_image);
-        titleView = (TextView) v.findViewById(R.id.wm_whiteboard_download_title);
         descriptionView = (TextView) v.findViewById(R.id.wm_whiteboard_download_description);
-        finishedButton = (ImageButton)v.findViewById(R.id.wm_whiteboard_download_finished);
+        finishedButton = (ImageButton) v.findViewById(R.id.wm_whiteboard_download_finished);
         finishedButton.setEnabled(false);
 
-        finishedButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(getActivity(), WhiteboardListActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(i);
-            }
-        });
+        progress = v.findViewById(R.id.wm_whiteboard_download_image_progress_container);
 
-
-
-        String previewUrl = (String) getArguments().getSerializable(WHITEBOARD_DOWNLOAD_URL);
-        whiteboardUrl = WhiteboardDetailsFragment.SERVER_API_URL + previewUrl.substring(previewUrl.lastIndexOf("/"));
+        final String previewUrl = (String) getArguments().getSerializable(WHITEBOARD_DOWNLOAD_URL);
+        final String whiteboardUrl = WhiteboardDetailsFragment.SERVER_API_URL + previewUrl.substring(previewUrl.lastIndexOf("/"));
 
         // instantiate it within the onCreate method
         mProgressDialog = new ProgressDialog(getActivity());
@@ -124,7 +113,8 @@ public class WhiteboardDownloadFragment extends Fragment {
         Long created;
         String description;
         String title;
-        String path;
+        String imageFileName;
+        String thumbFileName;
 
         Whiteboard wbExists;
 
@@ -135,7 +125,7 @@ public class WhiteboardDownloadFragment extends Fragment {
         @Override
         protected String doInBackground(String... sUrl) {
             InputStream input = null;
-            OutputStream output = null;
+            ByteArrayOutputStream output = null;
             HttpURLConnection connection = null;
             String content = "";
             URL url;
@@ -162,14 +152,6 @@ public class WhiteboardDownloadFragment extends Fragment {
             } catch (Exception e) {
                 return e.toString();
             } finally {
-                try {
-                    if (output != null)
-                        output.close();
-                    if (input != null)
-                        input.close();
-                } catch (IOException ignored) {
-                }
-
                 if (connection != null)
                     connection.disconnect();
             }
@@ -197,24 +179,7 @@ public class WhiteboardDownloadFragment extends Fragment {
                     // download the file
                     input = connection.getInputStream();
 
-//                    File mediaStorageDir = new File(Environment.getExternalStorageDirectory(), "WhiteboardMaster");
-                    File mediaStorageDir = getActivity().getDir("whiteboardimages", Context.MODE_PRIVATE);
-                    // This location works best if you want the created images to be shared
-                    // between applications and persist after your app has been uninstalled.
-
-                    // Create the storage directory if it does not exist
-                    if (!mediaStorageDir.exists()) {
-                        if (!mediaStorageDir.mkdirs()) {
-                            Log.d("WhiteboardMaster", "failed to create directory");
-
-                        }
-                    }
-
-                    // Create a media file name
-                    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-                    String fileName = "IMG_" + timeStamp + ".jpg";
-                    path = mediaStorageDir.getPath() + File.separator + fileName;
-                    output = new FileOutputStream(path);
+                    output = new ByteArrayOutputStream(1024 * 600);
 
                     byte data[] = new byte[4096];
                     long total = 0;
@@ -237,16 +202,24 @@ public class WhiteboardDownloadFragment extends Fragment {
                 return e.toString();
             } finally {
                 try {
-                    if (output != null)
+                    if (output != null) {
                         output.close();
-                    if (input != null)
+                        if (wbExists == null) {
+                            Map<PictureUtils.PictureType, String> images = PictureUtils.storeBitmap(output.toByteArray(), 0, getActivity());
+                            imageFileName = images.get(PictureUtils.PictureType.IMAGE);
+                            thumbFileName = images.get(PictureUtils.PictureType.THUMBNAIL);
+                        }
+                    }
+                    if (input != null) {
                         input.close();
+                    }
                 } catch (IOException ignored) {
                 }
 
                 if (connection != null)
                     connection.disconnect();
             }
+
             return null;
         }
 
@@ -257,8 +230,7 @@ public class WhiteboardDownloadFragment extends Fragment {
             // take CPU lock to prevent CPU from going off if the user
             // presses the power button during download
             PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                    getClass().getName());
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getClass().getName());
             mWakeLock.acquire();
             mProgressDialog.show();
         }
@@ -282,49 +254,74 @@ public class WhiteboardDownloadFragment extends Fragment {
                 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(i);
             } else {
+
+
+                final Intent i = new Intent(getActivity(), WhiteboardListActivity.class);
+                i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
                 Whiteboard whiteboard;
                 if (wbExists == null) {
-                    WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(context);
+                    i.putExtra(WhiteboardListFragment.WHITEBOARD_DATA_CHANGED, true);
 
-                    Whiteboard.WhiteBoardBuilder wb = new Whiteboard.WhiteBoardBuilder()
+                    WhiteboardDatabaseHelper mHelper = new WhiteboardDatabaseHelper(context);
+                     Whiteboard.WhiteBoardBuilder wb = new Whiteboard.WhiteBoardBuilder()
                             .setDescription(description)
                             .setTitle(title)
-                            .setImageFileName(path)
-                            .setCreated(created)
+                            .setImageFileName(imageFileName)
+                            .setThumbFileName(thumbFileName)
+                            .setCreated(created*1000)
                             .setUpdated(System.currentTimeMillis())
                             .setGuid(guid);
-                    whiteboard = wb.build();
 
-                    long count = mHelper.insertWhiteboard(whiteboard);
-                    Log.i(TAG, "insert new whiteboard: " + count);
+
+                    whiteboard = mHelper.insertWhiteboard(wb.build());
+//                    Log.i(TAG, "insert new whiteboard: " + whiteboard);
                     Toast.makeText(context, "Whiteboard downloaded", Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(context, "Whiteboard already exists", Toast.LENGTH_LONG).show();
-                    whiteboard= wbExists;
+                    whiteboard = wbExists;
                 }
 
+                finishedButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startActivity(i);
+                    }
+                });
 
-                titleView.setText(whiteboard.getTitle());
+
+                getActivity().getActionBar().setTitle(whiteboard.getTitle());
+
+                Context context = getActivity().getApplicationContext();
+                Date dt = new Date(whiteboard.getCreated());
+                String date = DateFormat.getDateFormat(context).format(dt);
+                String time = DateFormat.getTimeFormat(context).format(dt);
+                getActivity().getActionBar().setSubtitle(date + " - " + time);
+
                 descriptionView.setText(whiteboard.getDescription());
 
-//                BitmapDrawable image = PictureUtils.getScaledDrawable(getActivity(), whiteboard.getImageFileName());
-//                mImageView.setImageDrawable(image, null, -1, 8f);
-
-                FileInputStream is = null;
                 try {
-                    is = new FileInputStream(whiteboard.getImageFileName());
-                    TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, null, null);
+                    FileInputStream is = new FileInputStream(PictureUtils.getPathToFile(getActivity(), whiteboard.getImageFileName()));
+                    TileBitmapDrawable.attachTileBitmapDrawable(mImageView, is, null, new TileBitmapDrawable.OnInitializeListener() {
+
+                        @Override
+                        public void onStartInitialization() {
+                            progress.setVisibility(View.VISIBLE);
+                        }
+
+                        @Override
+                        public void onEndInitialization() {
+                            progress.setVisibility(View.GONE);
+                        }
+                    });
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
 
 
                 finishedButton.setEnabled(true);
-
             }
-            }
+        }
 
     }
-
-
 }

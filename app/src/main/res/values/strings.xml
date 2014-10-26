@@ -15,4 +15,8 @@
 
     <string name="wb_downloading">Whiteboard downloading</string>
 
+    <string name="delete_whiteboard_dialog">Do you really want to delete this whiteboard?</string>
+    <string name="ok">ok</string>
+    <string name="cancel">cancel</string>
+
 </resources>

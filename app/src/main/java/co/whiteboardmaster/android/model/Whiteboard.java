@@ -7,7 +7,7 @@ import java.io.Serializable;
  */
 public class Whiteboard implements Serializable{
 
-    private int id;
+    private long id;
     private String title;
     private String imageFileName;
     private String thumbFileName;
@@ -17,7 +17,7 @@ public class Whiteboard implements Serializable{
     private String guid;
 
 
-    public Whiteboard(int id, String title, String imageFileName, String thumbFileName, String description, long created, long updated, String guid) {
+    public Whiteboard(long id, String title, String imageFileName, String thumbFileName, String description, long created, long updated, String guid) {
         this.id = id;
         this.title = title;
         this.imageFileName = imageFileName;
@@ -28,7 +28,7 @@ public class Whiteboard implements Serializable{
         this.guid = guid;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
@@ -75,7 +75,7 @@ public class Whiteboard implements Serializable{
 
     public static class WhiteBoardBuilder {
 
-        private int id;
+        private long id;
         private String title;
         private String imageFileName;
         private String thumbFileName;
@@ -98,7 +98,7 @@ public class Whiteboard implements Serializable{
             this.guid = wb.getGuid();
         }
 
-        public WhiteBoardBuilder setId(int id) {
+        public WhiteBoardBuilder setId(long id) {
             this.id = id;
             return this;
         }
