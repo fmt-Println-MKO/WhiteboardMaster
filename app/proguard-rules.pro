@@ -15,15 +15,5 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
-#-keep class org.apache.http.** {*;}
-#-dontwarn org.apache.http.**
-#-dontwarn net.spy.memcached.**
-#-dontwarn net.sf.ehcache.**
-#-dontwarn org.ietf.jgss.**
-#-dontwarn javax.naming.**
-#-dontwarn javax.servlet.**
-#-keep class org.apache.log.** {*;}
-#-dontwarn org.apache.log.**
-#-keep class org.apache.log4j.** {*;}
-#-dontwarn org.apache.log4j.**
-#-dontwarn org.apache.avalon.**
+-keep class fakeawt.** {*;}
+-keep class magick.** {*;}
