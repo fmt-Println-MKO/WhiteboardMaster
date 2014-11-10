@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import co.whiteboardmaster.android.utils.PictureUtils;
+import go.mygodroid.Mygodroid;
 
 /**
  * Created by matthiaskoch on 16.10.14.
@@ -53,6 +54,14 @@ public class CameraFragment extends Fragment {
         public void onPictureTaken(byte[] data, Camera camera) {
 
             Map<PictureUtils.PictureType, String> pictures = PictureUtils.storeBitmap(data, rotation, getActivity());
+
+
+           // try {
+           //     Mygodroid.SayHelloGo(pictures.get(PictureUtils.PictureType.IMAGE));
+           //     Mygodroid.StoreImage(pictures.get(PictureUtils.PictureType.IMAGE), "/sdcard/data/gotest/" + System.currentTimeMillis() + ".jpg");
+           // } catch (Exception e) {
+           //     Log.e(TAG, "some strange GO error happens: ", e);
+           // }
 
             if (pictures != null) {
 
@@ -165,12 +174,10 @@ public class CameraFragment extends Fragment {
     }
 
     private Parameters setColorEffect(Parameters parameters) {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.KITKAT) {
-            List<String> supportedColorEffects = parameters.getSupportedColorEffects();
-            if (supportedColorEffects != null) {
-                if (supportedColorEffects.contains(Parameters.EFFECT_NEGATIVE)) {
-                    parameters.setColorEffect(Parameters.EFFECT_NEGATIVE);
-                }
+        List<String> supportedColorEffects = parameters.getSupportedColorEffects();
+        if (supportedColorEffects != null) {
+            if (supportedColorEffects.contains(Parameters.EFFECT_NEGATIVE)) {
+                parameters.setColorEffect(Parameters.EFFECT_NEGATIVE);
             }
         }
         return parameters;

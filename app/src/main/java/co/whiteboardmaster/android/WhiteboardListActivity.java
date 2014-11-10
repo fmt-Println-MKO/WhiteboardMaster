@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 
+import go.Go;
+
 /**
  * Created by matthiaskoch on 16.10.14.
  */
@@ -20,6 +22,8 @@ public class WhiteboardListActivity extends FragmentActivity {
 
         fragment = WhiteboardListFragment.findOrCreateRetainFragment(getSupportFragmentManager());
 
+        //Magic
+        //Go.init(getApplicationContext());
     }
 
     @Override
