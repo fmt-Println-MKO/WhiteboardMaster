@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import co.whiteboardmaster.android.utils.PictureUtils;
-import go.mygodroid.Mygodroid;
 
 /**
  * Created by matthiaskoch on 16.10.14.
@@ -56,12 +55,12 @@ public class CameraFragment extends Fragment {
             Map<PictureUtils.PictureType, String> pictures = PictureUtils.storeBitmap(data, rotation, getActivity());
 
 
-           // try {
-           //     Mygodroid.SayHelloGo(pictures.get(PictureUtils.PictureType.IMAGE));
-           //     Mygodroid.StoreImage(pictures.get(PictureUtils.PictureType.IMAGE), "/sdcard/data/gotest/" + System.currentTimeMillis() + ".jpg");
-           // } catch (Exception e) {
-           //     Log.e(TAG, "some strange GO error happens: ", e);
-           // }
+            // try {
+            //     Mygodroid.SayHelloGo(pictures.get(PictureUtils.PictureType.IMAGE));
+            //     Mygodroid.StoreImage(pictures.get(PictureUtils.PictureType.IMAGE), "/sdcard/data/gotest/" + System.currentTimeMillis() + ".jpg");
+            // } catch (Exception e) {
+            //     Log.e(TAG, "some strange GO error happens: ", e);
+            // }
 
             if (pictures != null) {
 
@@ -212,6 +211,7 @@ public class CameraFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        mUnexpectedTerminationHelper.init();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
             mCamera = Camera.open(0);
         } else {
@@ -226,7 +226,38 @@ public class CameraFragment extends Fragment {
             mCamera.release();
             mCamera = null;
         }
+        mUnexpectedTerminationHelper.fini();
     }
 
+
+    private UnexpectedTerminationHelper mUnexpectedTerminationHelper = new UnexpectedTerminationHelper();
+
+    private class UnexpectedTerminationHelper {
+        private Thread mThread;
+        private Thread.UncaughtExceptionHandler mOldUncaughtExceptionHandler = null;
+        private Thread.UncaughtExceptionHandler mUncaughtExceptionHandler = new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread thread, Throwable ex) {
+                if (mCamera != null) {
+                    mCamera.release();
+                }
+                if (mOldUncaughtExceptionHandler != null) {
+                    mOldUncaughtExceptionHandler.uncaughtException(thread, ex);
+                }
+            }
+        };
+
+        void init() {
+            mThread = Thread.currentThread();
+            mOldUncaughtExceptionHandler = mThread.getUncaughtExceptionHandler();
+            mThread.setUncaughtExceptionHandler(mUncaughtExceptionHandler);
+        }
+
+        void fini() {
+            mThread.setUncaughtExceptionHandler(mOldUncaughtExceptionHandler);
+            mOldUncaughtExceptionHandler = null;
+            mThread = null;
+        }
+    }
 
 }
