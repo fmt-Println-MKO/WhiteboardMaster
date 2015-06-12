@@ -7,3 +7,4 @@
 app/obj
 .idea
 infer-out
+*.iml
