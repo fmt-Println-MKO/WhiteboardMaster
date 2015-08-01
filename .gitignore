@@ -5,3 +5,6 @@
 .DS_Store
 /build
 app/obj
+.idea
+infer-out
+*.iml
